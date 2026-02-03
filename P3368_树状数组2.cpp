@@ -18,10 +18,11 @@ int query(int x){  //向前查,前缀和
 int main(){
     cin>>n>>m;
     for(int i=1;i<=n;i++)  cin>>a[i];
+    //用a存储数值,树状数组存储差分的修改值,则最终值为原始值(a[i])+差分值i的前缀和
     while(m--){
         cin>>op>>x;
-        if(op==1){  //区修,差分修改
-            cin>>y>>k;
+        if(op==1){  //区修,差分修改(x到y区间数字都加k相当于差分值中第x个+k,第y-1个-k)
+            cin>>y>>k;  
             change(x,k);
             change(y+1,-k);
         }else  cout<<a[x]+query(x)<<endl;  //点查,原值加修改值差分前缀和

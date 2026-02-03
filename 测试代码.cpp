@@ -1,62 +1,68 @@
-#include<bits/stdc++.h>
+// 万能头文件，包含C++所有常用标准头文件，竞赛中简化代码
+#include<bits/stdc++.h> 
+// 使用std命名空间，避免重复写std::
 using namespace std;
 
-long long n,a[500005],b[500005],t[500005],cnt[500005],ans;
-map<long long,int>m;
-long long lowbit(long long x)
-{
-    return x&(-x);
-}
-long long getsum(long long x)
-{
-    long long sum=0;
-    while(x)
-    {
-        sum+=t[x];
-        x-=lowbit(x);
+const int MOD = 1000000007; // 结果取模值，1e9+7是竞赛常用模数
+// 四维记忆化缓存数组：存储已计算过的状态结果，避免重复递归
+// 维度含义：[当前行x][当前列y][当前路径最大值+1][已统计的严格递增数个数num]
+// 初始值-1表示该状态未计算，计算后存结果（模MOD）
+int cache[59][59][14][14];
+int Map[59][59]; // 存储n*m的网格数值，下标1-based（与网格坐标一致）
+int n,m,k;       // 全局变量：n-行数，m-列数，k-目标严格递增数的个数
+
+// 深度优先搜索函数：递归统计从(x,y)出发到终点(n,m)的合法路径数
+// 参数说明：
+// x,y：当前所在的网格坐标（1-based）
+// maxV：从起点(1,1)到当前位置(x,y)的路径中，已出现的**最大值**（初始为-1，因网格值非负）
+// num：从起点(1,1)到当前位置(x,y)的路径中，已统计的**严格递增数的个数**
+int dfs(int x, int y, int maxV, int num){
+    // 边界条件：超出网格范围（行超n/列超m），为无效路径，贡献0条合法路径
+    if(x==n+1 || y==m+1) return 0;  
+    
+    // 记忆化核心：如果该状态已计算过（cache值≠-1），直接返回缓存结果，避免重复递归
+    // maxV+1：解决maxV初始为-1导致的数组下标负数问题，将下标映射到0~13（适配cache第三维大小14）
+    if(cache[x][y][maxV+1][num] != -1){
+        return cache[x][y][maxV+1][num];
     }
-    return sum;
+
+    long long res=0; // 存储当前状态的合法路径数，用long long避免累加时整数溢出
+    // 递归终止条件：走到终点(n,m)，判断是否为合法路径
+    if(x==n && y==m){
+        // 合法条件二选一：
+        // 1. 到达终点前，已统计的递增数个数恰好为k（终点元素不参与递增统计）
+        // 2. 到达终点前，已统计的递增数个数为k-1，且终点元素>当前路径最大值（终点元素参与统计，刚好凑够k）
+        if(num==k || num==k-1&&Map[x][y]>maxV){
+            res++;  // 满足条件，合法路径数+1
+        }
+    }else{   // 未到终点，递归探索**向右**和**向下**的所有可能走法（共4种分支）
+        // 分支1：向右走(y+1)，不更新路径最大值和递增数个数（当前格子Map[x][y]不参与递增统计）
+        res += dfs(x,y+1,maxV,num);
+        // 分支2：向右走(y+1)，若当前格子值>路径最大值，更新最大值为Map[x][y]，递增数个数+1
+        if(Map[x][y] > maxV){
+            res += dfs(x,y+1,Map[x][y],num+1);
+        }
+        // 分支3：向下走(x+1)，不更新路径最大值和递增数个数（当前格子Map[x][y]不参与递增统计）
+        res += dfs(x+1,y,maxV,num);
+        // 分支4：向下走(x+1)，若当前格子值>路径最大值，更新最大值为Map[x][y]，递增数个数+1
+        if(Map[x][y] > maxV){
+            res += dfs(x+1,y,Map[x][y],num+1);
+        }	
+    } 
+    // 将当前状态的结果取模后存入缓存，供后续重复状态直接调用
+    cache[x][y][maxV+1][num] = res % MOD;
+    return cache[x][y][maxV+1][num];  // 返回当前状态的合法路径数
 }
-void update(long long x,long long y)
-{
-    while(x<=500000)
-    {
-        t[x]+=y;
-        x+=lowbit(x);
-    }
-}
+
 int main()
 {
-    scanf("%lld",&n);
-    for (int i = 1; i <= n; i++)
-    {
-        scanf("%lld",&a[i]);
-        b[i]=a[i];
-    }
-    sort(b+1,b+n+1);
-    for(int i=1;i<=n;i++)
-    {
-        m[b[i]]=i;
-    }
-    for(int i=1;i<=n;i++)
-    {
-        a[i]=m[a[i]];
-    }
-    for (int i = 1; i <= n; i++)
-    {
-        update(a[i],1);//数字可以是0，所以要加1
-        cnt[i]+=(i-getsum(a[i])); //统计前面比它大的数字
-    }
-    memset(t,0,sizeof(t));
-    for (int i = n; i >= 1; i--)
-    {
-        update(a[i],1);
-        cnt[i]+=getsum(a[i]-1); //统计后面比它小的数字
-    }
-    for(int i=1;i<=n;i++)
-    {
-    	ans+=(cnt[i]+1)*cnt[i]/2;//算出这个数字的代价
-    }
-    printf("%lld",ans);
+    cin >> n >> m >> k; // 输入网格行数n、列数m、目标递增数个数k
+    // 输入n行m列的网格数值，下标1-based（与DFS的坐标一致，避免边界处理麻烦）
+    for( int i=1; i<=n; i++ )
+        for( int j=1; j<=m; j++ ) cin >> Map[i][j];
+    // 初始化记忆化缓存为-1：标记所有状态均未计算（路径数可以是0，不能用0作为未计算标记）
+    memset(cache,-1,sizeof(cache));
+    // 调用DFS：从起点(1,1)出发，初始最大值maxV=-1（无元素），初始递增数个数num=0
+    cout << dfs(1,1,-1,0);
     return 0;
 }
