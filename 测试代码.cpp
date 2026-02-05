@@ -1,45 +1,88 @@
-#include<bits/stdc++.h>		//懒人万能头文件
-#define int long long		//宏定义省事
+#include<bits/stdc++.h>
 using namespace std;
-const int P = 1e9 + 7;		//记得取模
-int n , m , k , ans;
-int a[55][55];
-int dx[2] = {1 , 0};		//两种方向
-int dy[2] = {0 , 1};
-int mem[55][55][15][15];		//记忆数组
+// 宏定义循环：rep(x,y,z) 等价于 for(int x=y; x<=z; x++)，简化三重循环代码
+#define rep(x,y,z) for(int x=y;x<=z;x++)
+// 定义长整型，防止乘法溢出（方案数极大，64位整数才能存储中间结果）
+typedef long long LL;
+// 取模常量，题目要求答案对1e9+7取模
+const int mod=1e9+7;
+// 全局变量：n-骰子数，m-互斥对数，a/b-临时存储互斥对，oppo[i]存储数字i的对面数字
+//（核心：题目规定的骰子对面规则）
+int n,m,a,b,oppo[7]={0,4,5,6,1,2,3};
+// st[x][y]=1 表示数字x和y互斥，不能紧贴在一起；初始全0（无互斥）
+bool st[7][7];
 
-int dfs(int x , int y , int num , int maxn)		//x与y记录当前行列坐标，num记录当前已拿的物品总数，maxn记录当前物品最大值
-{
-	if(x > n || y > m)	return 0;		//越界了就直接返回0
-	if(mem[x][y][maxn][num] != -1)	return mem[x][y][maxn][num];		//如果mem数组的值不为-1就直接返回
-	int cnt = 0;		//记录方案数
-	if(x == n && y == m)
-	{
-		if(num == k || num == k - 1 && a[n][m] > maxn)
-			++ cnt , cnt %= P;
-	}
-	else
-	{
-		for(int i = 0;i < 2;i ++)		//枚举两种方向
-		{
-			int xx = x + dx[i];
-			int yy = y + dy[i];
-			cnt += dfs(xx , yy , num , maxn);
-			if(a[x][y] > maxn)		//能否拿格子上的物品
-				cnt += dfs(xx , yy , num + 1, a[x][y]);
-		}
-	}
-	mem[x][y][maxn][num] = cnt % P;		//记录当前情况的值
-	return mem[x][y][maxn][num];		//直接返回即可
-}	
+// 矩阵结构体：6阶矩阵（对应骰子6个面的状态），存储状态转移的系数/方案数
+struct matrix{
+    // c[i][j]：矩阵的第i行第j列元素
+    LL c[7][7];
+    // 构造函数：创建矩阵时自动将所有元素初始化为0，避免随机值干扰
+    matrix(){memset(c,0,sizeof c);}
+}A,res; // A-状态转移矩阵，res-结果矩阵（快速幂的乘积结果）
 
-signed main()
-{
-	memset(mem , -1 , sizeof(mem));		//不要忘了初始化
-	cin >> n >> m >> k;		//输入
-	for(int i = 1;i <= n;i ++)		//还是输入
-		for(int j = 1;j <= m;j ++)
-			cin >> a[i][j];
-	cout << dfs(1 , 1 , 0 , -1) % P;		//这次是输出
-	return 0;
+// 重载矩阵乘法运算符：实现两个6阶矩阵的乘法，返回新矩阵t
+// 矩阵乘法规则：t[i][j] = ∑(k=1~6) x[i][k] * y[k][j]，且每次计算取模（防止溢出）
+matrix operator * (matrix &x,matrix &y){
+    matrix t; // 临时矩阵，存储乘法结果
+    rep(i,1,6){ // 遍历x的行（1~6，骰子面无0，从1开始更直观）
+        rep(j,1,6){ // 遍历y的列
+            rep(k,1,6){ // 遍历公共维度k（x的列=y的行）
+                // 矩阵乘法核心公式，取模保证数值在mod范围内
+                t.c[i][j]=(t.c[i][j]+x.c[i][k]*y.c[k][j])%mod;
+            }
+        }
+    }
+    return t;
+}
+
+// 矩阵快速幂函数：计算转移矩阵A的k次幂，结果存储在res中
+// k = n-1：第一个骰子为初始状态，后续需要递推n-1次得到n个骰子的方案
+void fastpow(LL k){
+    //初始化结果矩阵res：res是1行6列的矩阵（仅用第一行）,表示「1个骰子」的初始方案数
+    // res.c[1][i] = 4：1个骰子时，选择面i作为与下一个骰子的贴合面，有4种旋转方式
+	//（题目关键：每个骰子固定贴合面后，有4种旋转姿态）
+    rep(i,1,6) res.c[1][i]=4;
+    
+    // 构建**状态转移矩阵A**（6阶方阵，核心！）
+    // A.c[i][j] 含义：上一个骰子的贴合面为i，下一个骰子的贴合面为j 时的转移系数
+    rep(i,1,6){ // 上一个骰子的贴合面i
+        rep(j,1,6){ // 下一个骰子的贴合面j
+            // 关键逻辑：下一个骰子的贴合面是j，那么它贴在上一个骰子的面是
+			//「j的对面oppo[j]」
+            // 若上一个的i 和 下一个的oppo[j] 互斥（st[i][oppo[j]]=1），
+			//则此转移无效，系数为0
+            // 若不互斥，系数为4（下一个骰子固定贴合面j后，有4种旋转方式）
+            if(st[i][oppo[j]]) A.c[i][j]=0;
+            else A.c[i][j]=4;
+        }
+    }
+    
+    // 矩阵快速幂核心循环：二进制分解k，将幂运算转为多次乘法（时间O(logk)）
+    while(k){
+        // 若k的二进制最后一位为1，将结果矩阵与当前A相乘（累乘有效位）
+        if(k&1) res=res*A;
+        // 转移矩阵自乘，对应k的二进制位左移一位
+        A=A*A;
+        // k右移一位，舍弃最后一位
+        k>>=1;
+    }
+}
+
+int main(){
+    // 输入：n个骰子，m组互斥对
+    cin>>n>>m;
+    // 读入m组互斥对，标记st数组
+    while(m--){
+        cin>>a>>b;
+        // st[a][b]=1 且 st[b][a]=1：a和b互斥，b和a也互斥（双向不可紧贴）
+        st[a][b]=st[b][a]=1;
+    }
+    // 计算矩阵快速幂：转移n-1次（1个骰子→n个骰子需要n-1次相邻转移）
+    fastpow(n-1);
+    // 总方案数：累加n个骰子时，贴合面为1~6的所有方案数
+    LL ans=0;
+    rep(i,1,6) ans=(ans%mod+res.c[1][i]%mod)%mod;
+    // 输出最终结果（已取模）
+    cout<<ans;
+    return 0;
 }
