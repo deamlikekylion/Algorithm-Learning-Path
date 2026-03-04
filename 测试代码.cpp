@@ -1,78 +1,62 @@
-#include<bits/stdc++.h>
+#include <bits/stdc++.h>
 using namespace std;
-string maze[30]; //存放迷宫 
-int vis[30][50]; //是否访问过 
-char ans[1000]; //答案序列 
-queue<int> que; 
-int next_x[4] = {1, 0, 0, -1}; 
-//注意x，y的顺序，D<L<R<U搜出来的必定字典序最小
-int next_y[4] = {0, -1, 1, 0}; 
-//{x, y} = {1, 0}表示向下 ,{0, -1}左,{0, 1}右,{-1, 0}上 
-int DLRU[4] = {'D', 'L', 'R', 'U'};
-int flag = 0; //用于dfs中 
-void bfs(int x, int y){
-	que.push(x);
-	que.push(y);
-	vis[x][y] = 1;
-	while(!que.empty()){
-		int current_x = que.front();
-		que.pop();
-		int current_y = que.front();
-		que.pop();
-		if(current_x == 29 && current_y == 49) //如果走到了终点就退出循环 
-			break;
-		for(int i = 0; i < 4; i++){ //这里是判断四个方向是否可到达 
-			int next_step_x = current_x + next_x[i];
-			int next_step_y = current_y + next_y[i];
-			if(next_step_x < 30 && next_step_x >= 0 && next_step_y < 50 
-				&& next_step_y >= 0){ //不能越界 
-				if(maze[next_step_x][next_step_y] == '0') //如果是0代表可达 
-					if(vis[next_step_x][next_step_y] == 0){ 
-						//判断这个点有没有访问过，等于0代表没有访问过 
-						que.push(next_step_x);
-						que.push(next_step_y);
-						vis[next_step_x][next_step_y] = 
-						vis[current_x][current_y] + 1; 
-						//当前节点vis值等于上一层+1，这样方便后面寻找走的路径 
-					}
-			}
-		}
-	}
+
+// 全局变量定义
+int n;                      // 树的节点数量
+int a[100005];              // a[i] 存储第i个节点的和谐值（点权）
+long long dp[100005];
+// dp[u]：以u为根的子树中，包含u的最大权值连通子图的和（必须选u）
+                            // 注意开long long：点权绝对值≤1e6，n≤1e5，总和可能达1e11，超出int范围
+vector<int> adj[100005];    // 邻接表：存储树的边，adj[u]存储u的所有邻接节点
+
+/**
+ * @brief 深度优先搜索（后序遍历），计算每个节点的dp值
+ * @param u 当前遍历的节点
+ * @param fa u的父节点（避免回边遍历）
+ */
+void dfs(int u, int fa) {
+    // 初始化dp[u]：只选当前节点u，和为u的点权
+    dp[u] = a[u];
+    
+    // 遍历u的所有邻接节点v
+    for(int v : adj[u]) {
+        // 如果v是父节点，跳过（避免走回头路，保证只遍历子树）
+        if(v == fa) continue;
+        
+        // 递归遍历子节点v，父节点设为u
+        dfs(v, u);
+        
+        // 状态转移核心：
+        // 如果子节点v的dp[v]为正，说明选v的子树能增加总和，就加上；
+        // 如果dp[v]为负，加了会让总和变小，所以加0（等价于不选v的子树）
+        // 0ll是long long类型的0，保证和dp[v]（long long）类型匹配
+        dp[u] += max(dp[v], 0ll);
+    }
 }
-void dfs(int index, int x, int y){
-	//这里深搜是从终点开始，所以要按照字典序最小，那么方向顺序就和正向相反，就是URLD 
-	if(flag == 1) return; //如果找到了第一个答案序列，不进行下面的搜索 
-	if(index == 1){
-		flag = 1; // 用来判断是否搜到第一个答案，如果搜到了接下来的搜索就不用干了 
-		for(int i = 2; i <= vis[29][49]; i++)
-			cout<<ans[i];
-		cout<<endl;
-		return;
-	}
-	for(int i = 3; i >= 0; i--){ //顺序要相反 
-		int pre_x = x + next_x[i];
-		int pre_y = y + next_y[i];
-		if(pre_x < 30 && pre_x >= 0 && pre_y < 50 && pre_y >= 0){
-			if(vis[pre_x][pre_y] + 1 == vis[x][y]){
-				ans[index] = DLRU[3 - i]; 
-				dfs(index - 1, pre_x, pre_y);
-				ans[index] = ' ';
-			}
-		}
-	}
-}
-int main(){
-	freopen("maze.txt", "r", stdin);
-	for(int i = 0; i < 30; i++)
-		cin>>maze[i];
-	bfs(0, 0);
-	dfs(vis[29][49], 29, 49);
-	for(int i = 0; i < 30; i++){
-		for(int j = 0; j < 50; j++){
-//			cout<<vis[i][j]<<" ";
-			printf("%3d ", vis[i][j]);
-		}
-		cout<<endl;
-	}
-	return 0;
+
+int main() {
+    // 输入节点数量n
+    scanf("%d", &n);
+    
+    // 输入每个节点的和谐值（点权），节点编号从1到n
+    for(int i = 1; i <= n; i++) 
+        scanf("%d", &a[i]);
+    
+    // 输入n-1条边，构建邻接表（树的无向边）
+    for(int i = 1, u, v; i < n; i++) {
+        scanf("%d%d", &u, &v);
+        adj[u].push_back(v);  // u的邻接表加入v
+        adj[v].push_back(u);  // v的邻接表加入u
+    }
+    
+    // 从根节点1开始DFS，父节点设为0（0不是有效节点，避免冲突）
+    dfs(1, 0);
+    
+    // 计算答案：
+    // 1. 遍历dp[1]到dp[n]，找到最大的dp值（所有以u为根的最优连通子图）
+    // 2. 与0ll比较：如果所有dp[u]都是负数，选空集（和为0）更优
+    // max_element返回区间内最大值的迭代器，*取值；%lld对应long long类型输出
+    printf("%lld", max(*max_element(dp + 1, dp + n + 1), 0ll));
+    
+    return 0;
 }
