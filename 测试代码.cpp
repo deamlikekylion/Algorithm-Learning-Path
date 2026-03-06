@@ -1,97 +1,72 @@
-#include<bits/stdc++.h>
+#include<bits/stdc++.h>  // 万能头文件，包含所有常用STL库
 using namespace std;
-typedef long long ll; // 数据范围到1e12，必须用long long
 
-// 求最大公约数（欧几里得算法）
-ll gcd(ll a, ll b) {
-    return b == 0 ? a : gcd(b, a % b);
+int n;                  // 输入的数字个数
+long long t[200];       // 存储输入的原始数字（数组大小200，适配题目N<100的限制）
+long long a[200];       // 存储相邻数字化简后的分子
+long long b[200];       // 存储相邻数字化简后的分母
+
+// 递归函数：尝试将相邻的两个比值（a[i]/b[i] 和 a[i+1]/b[i+1]）化为同底数的幂次
+// 核心思路：通过不断相除，让a[i]和a[i+1]相等、b[i]和b[i+1]相等，从而找到公共底数
+void d(int i) {
+	// 递归终止条件：如果当前分子和下一个分子相等，无需继续处理
+	if(a[i]==a[i+1]) return;
+	
+	// 情况1：当前分子大于下一个分子 → 不断除以下一个分子，直到相等
+	if(a[i]>a[i+1]) {
+		while(a[i]>a[i+1]) a[i]/=a[i+1];  // 分子相除，试图让a[i]缩小到和a[i+1]相等
+		while(b[i]>b[i+1]) b[i]/=b[i+1];  // 分母同步相除，保持比值不变
+		d(i);  // 递归继续处理（可能一次相除还不相等）
+		return;
+	}
+	
+	// 情况2：当前分子小于下一个分子 → 不断除以下一个分子，直到相等
+	if(a[i]<a[i+1]) {
+		while(a[i]<a[i+1]) a[i+1]/=a[i];  // 下一个分子相除，试图缩小到和当前分子相等
+		while(b[i]<b[i+1]) b[i+1]/=b[i];  // 分母同步相除，保持比值不变
+		d(i);  // 递归继续处理
+		return;
+	}
 }
 
-// 分解质因数：返回map<质因数, 指数>
-map<ll, ll> factorize(ll x) {
-    map<ll, ll> res;
-    for (ll i = 2; i * i <= x; ++i) {
-        while (x % i == 0) {
-            res[i]++;
-            x /= i;
-        }
-    }
-    if (x > 1) res[x]++; // 剩余的质因数
-    return res;
-}
-
-// 求一组数的最大公共底数（所有数都是该底数的整数次幂）
-ll get_max_base(vector<ll>& nums) {
-    if (nums.size() == 1) return nums[0]; // 只有一个数，底数就是它自己
-    
-    // 分解第一个数的质因数，作为候选底数的基础
-    auto factors = factorize(nums[0]);
-    ll max_base = 1;
-    
-    // 遍历每个候选质因数
-    for (auto& [p, e0] : factors) {
-        // 检查所有数是否都是p的整数次幂
-        bool valid = true;
-        vector<ll> exponents; // 存储每个数中p的指数
-        exponents.push_back(e0);
-        
-        for (int i = 1; i < nums.size(); ++i) {
-            ll num = nums[i];
-            ll cnt = 0;
-            while (num % p == 0) {
-                cnt++;
-                num /= p;
-            }
-            // 如果num不为1，说明不是p的纯幂次，排除该质因数
-            if (num != 1) {
-                valid = false;
-                break;
-            }
-            exponents.push_back(cnt);
-        }
-        
-        // 如果该质因数合法，计算指数的最大公约数，得到候选底数
-        if (valid) {
-            ll g = exponents[0];
-            for (ll e : exponents) g = gcd(g, e);
-            max_base = max(max_base, (ll)pow(p, g)); // 底数为p^g
-        }
-    }
-    return max_base;
+// 自定义最大公约数（gcd）函数：递归实现欧几里得算法
+long long c(long long x,long long y) {
+	if(x%y==0) return y;          // x能被y整除，最大公约数是y
+	if(y%x==0) return x;          // y能被x整除，最大公约数是x
+	if(x<y) return c(y%x,x);      // x<y时，递归计算y%x和x的gcd
+	if(x>y) return c(x%y,y);      // x>y时，递归计算x%y和y的gcd
 }
 
 int main() {
-    int n;
-    cin >> n;
-    vector<ll> t(n);
-    for (int i = 0; i < n; ++i) cin >> t[i];
-    
-    // 步骤1：去重 + 升序排序
-    sort(t.begin(), t.end());
-    t.erase(unique(t.begin(), t.end()), t.end()); // 标准去重方法，比手动前移更可靠
-    n = t.size();
-    if (n <= 1) { // 只有一个数，公比任意（题目保证有解，此处仅防御）
-        cout << "1/1" << endl;
-        return 0;
-    }
-    
-    // 步骤2：计算相邻数的最简比值（分子、分母分开存储）
-    vector<ll> a_list, b_list;
-    for (int i = 0; i < n-1; ++i) {
-        ll up = t[i+1], down = t[i];
-        ll g = gcd(up, down);
-        ll a = up / g;   // 最简分子
-        ll b = down / g; // 最简分母
-        a_list.push_back(a);
-        b_list.push_back(b);
-    }
-    
-    // 步骤3：求分子的最大公共底数x，分母的最大公共底数y
-    ll x = get_max_base(a_list);
-    ll y = get_max_base(b_list);
-    
-    // 步骤4：输出最简分数（x和y天然互质）
-    cout << x << "/" << y << endl;
-    
-    return 0;
+	// 步骤1：输入数字个数和原始数字
+	cin>>n;
+	for(int i=1;i<=n;i++) scanf("%lld",&t[i]);  // 用scanf读入long long，避免cin的效率问题
+	
+	// 步骤2：对原始数字升序排序（等比数列需有序才能计算相邻比值）
+	sort(t+1,t+n+1);
+	
+	// 步骤3：手动去重（逻辑有缺陷，会漏判连续重复）
+	for(int i=1;i<n;i++) {
+		if(t[i]==t[i+1]) {  // 发现相邻重复数字
+			// 将重复位置后的数字整体前移一位，覆盖重复值
+			for(int j=i+1;j<=n;j++) {
+				t[j]=t[j+1];
+			}
+			n--;  // 数字个数减1（去重后总数减少）
+		}
+	}
+	
+	// 步骤4：计算相邻数字的最简比值（分子存a[i]，分母存b[i]）
+	for(int i=1;i<n;i++) {
+		// 化简t[i+1]/t[i]为最简分数：分子=大数/gcd，分母=小数/gcd
+		a[i]=t[i+1]/c(t[i+1],t[i]);
+		b[i]=t[i]/c(t[i+1],t[i]);
+	}
+	
+	// 步骤5：递归化简所有相邻比值，试图找到公共底数
+	for(int i=1;i<n-1;i++) d(i);
+	
+	// 步骤6：输出最后一个比值（认为是最大公比）
+	cout<<a[n-1]<<"/"<<b[n-1];
+	return 0;
 }
