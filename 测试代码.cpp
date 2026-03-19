@@ -1,16 +1,29 @@
-#include <bits/stdc++.h>
+#include<bits/stdc++.h>
 using namespace std;
-const int N=1005;
-int f[N][N];
-string s1,s2;
-int main() {
-	cin>>s1;	s2=s1;
-	int l=s1.size();
-	reverse(s2.begin(),s2.end());		//翻转串
-	for(int i=1;i<=l;++i)			
-		for(int j=1;j<=l;++j)
-			if(s1[i-1]==s2[j-1])	f[i][j]=f[i-1][j-1]+1;
-			else	f[i][j]=max(f[i][j-1],f[i-1][j]);
-	cout<<l-f[l][l];
+const int MAXN=1e6+10;
+int num,ans;
+int fa[100100];
+int find(int x)//并查集中的查询操作
+{
+	if(x==fa[x]) return x;
+	return fa[x]=find(fa[x]);
+}
+int main()
+{
+	int n;
+	cin>>n;
+	for (int i=1;i<100100;i++)//所有数最开始都应指向它本身
+	{
+		fa[i]=i;
+	}
+	int a;
+	for (int i=1;i<=n;i++)
+	{
+		cin>>a;
+		a=find(a);//查询这个数
+		fa[a]=find(a)+1;//修改它的父节点
+		cout<<a<<" ";
+	}
 	return 0;
 }
+
