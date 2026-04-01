@@ -1,90 +1,105 @@
-// 万能头文件，包含所有C++常用库
-#include<bits/stdc++.h>
-// 宏定义：简化代码书写，提升编译/运行效率
-#define inl inline        // 内联函数，减少函数调用开销
-#define reg register     // 寄存器变量，加快变量访问速度
-#define int long long    // 核心！全部变量用long long，防止数据溢出（题目数值极大）
-#define fst ios::sync_with_stdio(0);cin.tie(0);cout.tie(0); // 加速cin/cout，关闭同步
-#define rep(i,x,y) for(reg int i=x;i<=(y);++i)  // 正向循环宏
-#define per(i,x,y) for(reg int i=x;i>=(y);--i)  // 反向循环宏
+// 包含所有C++标准库，比赛快速写法
+#include <bits/stdc++.h>
 using namespace std;
 
-// 常量定义：数组最大长度（题目n≤1e5，开1e5+5防止越界）
-const int N=1e5+5;
-// 全局变量：
-int n,k,T;        // n=总人数，k=要选的人数，T=方差阈值
-int a[N];         // 存储原始成绩数组
-int sum_s[N];     // 前缀平方和数组：sum_s[i] = v[1]² + v[2]² + ... +v[i]²
-int sum[N];       // 前缀和数组：sum[i] = v[1] + v[2] + ... +v[i]
-int v[N];         // 临时数组：存储前x个成绩，用于排序
+// 核心：数据范围极大(1e12)，必须用long long，宏定义简化代码
+#define int long long
+// 数组最大长度，N最大1e5，开2e5足够
+const int maxn = 200000 + 10;
 
-// ---------------- 核心判断函数 ----------------
-// 功能：检查【前x个同学】中，能否选出k个成绩，使得方差 < T
-// 返回值：true=满足条件，false=不满足
-bool check(int x){
-    // 1. 把原始数组前x个成绩复制到临时数组v（不修改原数组）
-    rep(i,1,x) v[i]=a[i];
-    
-    // 2. 贪心核心：对前x个成绩排序
-    // 原理：排序后【连续k个数字】的方差一定最小！离散程度最低
-    sort(v+1,v+x+1);
-    
-    // 3. 预处理前缀和 + 前缀平方和（O(x)时间）
-    rep(i,1,x){
-        sum_s[i] = sum_s[i-1] + v[i]*v[i];  // 累计平方和
-        sum[i]   = sum[i-1] + v[i];         // 累计普通和
-    }
-    
-    // 4. 滑动窗口：遍历所有长度为k的连续区间，找最小方差
-    // 窗口范围：[i-k+1, i]，i从k开始（保证窗口长度≥k）
-    double ans = DBL_MAX;  // 初始化最小方差为无穷大（double最大值）
-    rep(i,k,x){
-        // 公式核心：方差化简式（避免计算平均值，减少浮点误差）
-        // 原方差：σ² = (Σv_i²/k) - (Σv_i)²/(k²)
-        // 化简后分子：k*Σv_i² - (Σv_i)²，最终方差 = 分子/(k²)
-        
-        // sum1 = 窗口内k个数的平方和
-        double sum1 = sum_s[i] - sum_s[i-k];
-        // sum2 + sum3 是化简后的 (Σv_i)² / k
-        double sum2 = 2*(1.0*sum[i]-sum[i-k])*((1.0*sum[i]-sum[i-k])/k);
-        double sum3 = ((1.0*sum[i]-sum[i-k])/k)*((1.0*sum[i]-sum[i-k])/k)*k;
-        
-        // 计算当前窗口的方差，更新最小值
-        ans = min(ans, (sum1 - sum2 + sum3)/k);
-    }	
-    
-    // 5. 判断最小方差是否 < 阈值T
-    return ans < T;
+// n:数组长度 m:已知条件数 q:查询数
+int n, m, a, b, s;
+// par[]: 并查集父节点数组
+// val[]: 核心！带权并查集的权值，val[x]表示 sum[x] - sum[根节点]
+int par[maxn], val[maxn];
+
+// 并查集初始化：父节点指向自己，权值初始为0
+// l=0, r=n：前缀和下标从0到n
+void init(int l, int r)
+{
+    for(int i = l; i <= r; i++) 
+        par[i] = i, val[i] = 0;
 }
 
-// ---------------- 主函数 ----------------
-signed main(){  // 因为用了#define int long long，主函数必须用signed
-    fst;  // 开启cin/cout加速
-    
-    // 输入：总人数n、选k人、方差阈值T
-    cin>>n>>k>>T;
-    // 输入n个同学的成绩
-    rep(i,1,n) cin>>a[i];
-    
-    // 二分答案：找【最小的检查人数】
-    int l = k;    // 左边界：至少要检查k个人（才能选k个）
-    int r = n;    // 右边界：最多检查全部n个人
-    int ans = -1; // 答案初始化为-1（默认无解）
-    
-    // 标准二分查找模板
-    while(l <= r){
-        int mid = (l + r) >> 1; // 取中间值：(l+r)/2，位运算更快
-        
-        // 检查前mid个人是否满足条件
-        if(check(mid)){
-            ans = mid;    // 满足条件，记录答案
-            r = mid - 1;  // 尝试找更小的答案（往左二分）
-        }else{
-            l = mid + 1;  // 不满足，需要检查更多人（往右二分）
+// 带权并查集的查找函数（带路径压缩）
+// 返回x的根节点，同时更新val[x]为x到根节点的真实权值
+int find(int x)
+{
+    // 如果x是根节点，直接返回
+    if(par[x] == x) 
+        return x;
+    else
+    {
+        // 递归找到x的根节点
+        int root = find(par[x]);
+        // 路径压缩：更新x到根节点的权值
+        // 原val[x]是x到父节点的距离，val[par[x]]是父节点到根节点的距离
+        // 相加后就是x直接到根节点的距离
+        val[x] += val[par[x]];
+        // 路径压缩：直接让x的父节点指向根节点
+        return par[x] = root;
+    }
+}
+
+// 主函数，因为#define int long long，所以主函数必须用signed
+signed main()
+{
+    // 输入：数组长度n，已知条件数m，查询数q
+    cin >> n >> m;
+    int q;
+    cin >> q;
+
+    // 初始化并查集：前缀和下标 0 ~ n
+    init(0, n);
+
+    // 处理M个已知的部分和条件
+    for(int i = 1; i <= m; i++)
+    {
+        // 输入：区间[l, r]，和为s
+        scanf("%lld%lld%lld", &a, &b, &s); 
+        // 关键转化：区间[l,r]和 = sum[r] - sum[l-1] = s
+        // 所以把a = l-1，对应前缀和sum[a]
+        a--;
+
+        // 查找a和b的根节点
+        int t1 = find(a);
+        int t2 = find(b);
+
+        // 如果两个节点不在同一个集合，合并
+        if(t1 != t2)
+        {
+            // 合并：让t2的父节点指向t1
+            par[t2] = t1;
+            // 核心公式：推导合并后的权值
+            // 已知 sum[b] - sum[a] = s
+            // sum[b] = val[b] + sum[t2]
+            // sum[a] = val[a] + sum[t1]
+            // 代入得：val[b]+sum[t2] - (val[a]+sum[t1]) = s
+            // 因为sum[t1]=0（根节点），整理得：val[t2] = s + val[a] - val[b]
+            val[t2] = -val[b] + s + val[a];
         }
     }
-    
-    // 输出最终答案（无解输出-1，有解输出最小人数）
-    cout << ans;
+
+    // 处理Q个查询
+    while(q--)
+    {
+        // 输入查询区间[l, r]
+        scanf("%d%d", &a, &b); 
+        // 同样转化为 sum[r] - sum[l-1]
+        a--;
+
+        // 查找根节点
+        int t1 = find(a);
+        int t2 = find(b);
+
+        // 根节点不同 → 无法推导，输出UNKNOWN
+        if(t1 != t2)
+            cout << "UNKNOWN\n";
+        // 根节点相同 → 可以推导，区间和 = val[b] - val[a]
+        // 因为val[b]=sum[b]-sum[root]，val[a]=sum[a]-sum[root]，相减后就是sum[b]-sum[a]
+        else
+            cout << val[b] - val[a] << '\n';
+    }
+
     return 0;
 }
