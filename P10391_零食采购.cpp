@@ -27,7 +27,7 @@ int lca(int u,int v){
 void dfs_cnt(int u,int father){
     for(int v : e[u]){
         if(v==father)  continue;
-        for(int i=1;i<=20;i++)  cnt[v][i]=cnt[u][i];
+        for(int i=1;i<=20;i++)  cnt[v][i]=cnt[u][i];  //遍历20种零食
         //从根到v要经过其父节点u,根->u的零食出现次数包含在根->v
         cnt[v][c[v]]++;  //加上当前节点v自己的零食种类
         dfs_cnt(v,u);    //递归子节点
@@ -47,7 +47,7 @@ int main(){
     while(q--){
         int s,t;  cin>>s>>t;
         int ans=0,nod=lca(s,t);    //nod为s,t的最近公共祖先
-        for(int i=1;i<=20;i++){    //遍历所以零食种类
+        for(int i=1;i<=20;i++){    //遍历所有零食种类
             int num=(cnt[s][i]-cnt[nod][i])+(cnt[t][i]-cnt[nod][i]);
             //cnt[s][i]-cnt[nod][i]为s到nod路径上零食i的数量(包括s不包括nod)
             //(cnt[s][i]-cnt[nod][i])+(cnt[t][i]-cnt[nod][i])
