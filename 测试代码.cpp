@@ -1,99 +1,21 @@
-#include<iostream>
-#include<cstring>
-#include<string>
+#include<bits/stdc++.h>
 using namespace std;
 
-// 结构体：存储【非0非1的有效数字】和 它在实际栈中的位置
-struct lp{
-	long long val;  // 数字的值
-	int pos;        // 该数字在实际栈中的位置（用于判断是否在查询区间内）
-}a[100005];       // 数组模拟栈：存储有效数字（非0非1）
+#define ll long long
+const ll mod=1000000007,N=5e5+5;
+ll sum,nm,x,ans,a[N],jc[N],invjc[N];
+//a[i]表示数字i出现的次数,jc[i]表示i!(i的阶乘)取模,invjc[i]表示i!模1e9+7的逆元
 
-int Q,op,y;       // Q：操作次数，op：操作类型，y：查询的数字个数
-int top;          // 实际栈的栈顶指针（记录当前栈的元素个数/位置）
-int cnt;          // 有效数字栈(a数组)的栈顶指针
-int zero[100005]; // 数组模拟栈：存储所有数字0在实际栈中的位置
-int tz;           // 0栈(zero数组)的栈顶指针
-long long ans;    // 存储查询的乘积结果
-long long x;      // 入栈的数字x
+ll qpow(ll a,ll b){  //快速幂函数,计算a^b取模,用于求逆元
+    ll res=1;
+    while(b){
+        if(b&1)  res=(res*a)%mod;
+        a=(a*a)%mod;
+        b>>=1;
+    }
+    return res;
+}
 
-int main() {
-	cin>>Q; // 输入操作次数
-	while (Q--) { // 循环处理Q次操作
-		cin>>op; // 读取操作类型
-		
-		// ===================== 操作1：入栈 x =====================
-		if (op==1) {
-			cin>>x;   // 读取入栈的数字
-			top++;    // 实际栈栈顶+1（无论数字是什么，实际栈都占位置）
-			
-			if (x==0) {
-				// 如果数字是0，存入0栈，记录它在实际栈的位置
-				zero[++tz] = top;
-			}
-			else if (x!=1) {  
-				// 如果数字不是1也不是0（有效数字），存入有效数字栈
-				cnt++;
-				a[cnt].val = x;   // 存数值
-				a[cnt].pos = top; // 存该数字在实际栈的位置
-			}
-			// 数字1：不做任何处理，不存栈（乘法无贡献）
-		}
-		
-		// ===================== 操作2：弹出栈顶元素 =====================
-		else if (op==2) {
-			if (top) { // 栈非空才可以弹出
-				// 情况1：要弹出的是数字0（位置匹配0栈栈顶）
-				if (top == zero[tz]) {
-					top--;   // 实际栈栈顶-1
-					tz--;    // 0栈栈顶-1（弹出0）
-				}
-				// 情况2：要弹出的是有效数字（非0非1）
-				else if (top == a[cnt].pos) {
-					top--;   // 实际栈栈顶-1
-					cnt--;   // 有效数字栈栈顶-1（弹出有效数字）
-				}
-				// 情况3：要弹出的是数字1（无存储，仅修改实际栈指针）
-				else {
-					top--;
-				}
-			}
-			// 栈空：什么都不做
-		}
-		
-		// ===================== 操作3：查询栈顶y个数的乘积 =====================
-		else if (op==3) {
-			cin>>y; // 读取要查询的数字个数y
-			
-			// 1. 栈内元素不足y个：输出ERROR
-			if (y > top) {
-				cout<<"ERROR"<<endl;
-			}
-			// 2. 查询区间内包含数字0：乘积直接为0
-			// 判断规则：0栈非空，且最靠近栈顶的0在查询的y个元素内
-			else if (tz && (top - zero[tz] + 1) <= y) {
-				cout<<0<<endl;
-			}
-			// 3. 无0，计算有效数字的乘积
-			else {
-				ans = 1;    // 乘积初始化为1
-				int t = 0;  // 计数器：遍历有效数字栈的偏移量
-				
-				// 循环：从栈顶往回遍历有效数字，直到超出查询区间y
-				while (top - a[cnt - t].pos + 1 <= y) {
-					ans *= a[cnt - t].val; // 累乘有效数字
-					if (ans >= 4294967296) break; // 提前溢出，终止循环
-					t++; // 继续遍历前一个有效数字
-				}
-				
-				// 根据最终乘积输出结果
-				if (ans >= 4294967296) {
-					cout<<"OVERFLOW"<<endl;
-				} else {
-					cout<<ans<<endl;
-				}
-			}
-		}
-	}
-	return 0;
+ll inv(ll x){  //求x在模mod下的逆元(费马小定理:mod如果是质数,则逆元=x^(mod-2)取模)
+    return  qpow(x,mod-2);
 }

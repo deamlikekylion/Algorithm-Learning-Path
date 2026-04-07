@@ -23,7 +23,7 @@ int main(){
         if(L<R)  k.emplace_back(L,R);
         //emplace_back不用加大括号,push_back({L,R})要加大括号
         //且emplace直接在末尾创建,push要拷贝,对于pair等类型的emplace比push快一点
-        //后面的所以push都可以换成emplace但没有啥区别
+        //后面的所有push都可以换成emplace但没有啥区别
     }
     sort(k.begin(),k.end(),cmp);        //按L的大小升序排序
     vector< pair<double,double> > m;    //将k中重叠的区间合并后加入k

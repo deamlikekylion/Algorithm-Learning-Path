@@ -4,6 +4,7 @@ using namespace std;
 
 ll n,m,ans=35,a[35];  //ans为最终要切的瓜数,因为每个只能切1次最多30个瓜,所以初始可为35表示不可解
 map <ll,ll> mp;       //mp[sum]=cnt表示dfs1中凑出重量为sum的瓜最少需要切cnt刀
+                      //不能用数组存sum对应的cnt是因为sum=m*2上限2e9,数组存不了这么多
 
 void dfs1(ll sum,ll id,ll cnt){  //处理前半部分瓜:sum为当前凑出的重量,id为当前处理第id个瓜,cnt为当前切瓜数
     if(sum>m||id>n/2)  return;   //剪枝1:sum超出目标重量或者前半部分处理完了
@@ -35,7 +36,8 @@ int main(){
     sort(a+1,a+1+n);   //排序可以优化搜索
     dfs1(0,0,0);       //处理前半部分瓜(注意从id=0开始,因为递归时加的是a[id+1])
     dfs2(0,n/2,0);     //处理后半部分瓜
-    //或者36行从id=1开始,9、37行n/2改成n/2+1,22行n改成n+1,17、18、28、29行id+1改成id
+    //或者37行从id=1开始,10、38行n/2改成n/2+1,23行n改成n+1,18、19、29、30行id+1改成id
+    //前半段处理了1到n/2+1,后半段处理了n/2+1到n+1
     if(ans!=35)  cout<<ans<<endl;  //ans!=35可解,输出ans
     else  cout<<-1<<endl;          //不可解输出ans
     return 0;
