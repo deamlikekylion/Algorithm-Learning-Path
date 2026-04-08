@@ -3,6 +3,8 @@ using namespace std;
 
 const int N=1e5+5;
 int n,m,t,sum[N],cnt[N],mp[N],ans;
+//sum[i]记录i店的优先级情况,cnt[i]记录i店上一次有订单的时间
+//mp[i]=1表示i店在缓存中,mp[i]=0表示i店不在缓存中
 struct nod{
     int ti,id;
 }a[N];

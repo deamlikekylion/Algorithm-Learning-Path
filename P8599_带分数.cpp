@@ -5,7 +5,7 @@ string a="123456789",b;
 bool vis[9];
 int n,cnt=0;  
 
-void dfs(int s,int t){
+void dfs(int s){
     if(s==9){
         int x=0;
         for(int i=0;i<7;i++){
@@ -21,11 +21,11 @@ void dfs(int s,int t){
             }
         } 
     }
-    for(int i=0;i<t;i++){
+    for(int i=0;i<9;i++){
         if(!vis[i]){
             vis[i]=true;
             b[s]=a[i];
-            dfs(s+1,t);
+            dfs(s+1);
             vis[i]=false;
         }
     }
@@ -33,7 +33,7 @@ void dfs(int s,int t){
 
 int main(){
     cin>>n;
-    dfs(0,9);
+    dfs(0);
     cout<<cnt;
     return 0;
 }

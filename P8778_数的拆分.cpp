@@ -4,7 +4,7 @@ using namespace std;
 #define ll long long  //int上限2^31-1=2e9,long long上限2^63-1=9e18
 const int N=4000;
 vector<ll> p;
-bool not_p[N+5];  //注意后面遍历时i<=N,此处数组要加5
+bool not_p[N+5];      //注意后面遍历时i<=N,此处数组要加5
 //对于满足题目的a一定能表示成a=x1^2*x2^3,假设x1<x2,则x1^5<a<n=1e18
 //所以x1<1e18的五次方根<4000,x1​一定是4000以内的数
 //遍历4000内的所有质数(这些质数全是x1​的质因子),可以把x1​从a里彻底除干净​
