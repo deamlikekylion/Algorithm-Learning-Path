@@ -1,2 +1,14 @@
 # Algorithm-Learning-Path
-The code of the Luogu algorithm problems that have been processed
+
+C++ 算法学习与刷题记录，用于整理日常算法学习代码、真题练习以及各平台刷题代码。
+
+## 目录
+
+- `Cpp算法学习代码/`：算法与数据结构学习、模板及练习代码
+- `CSP算法题真题/`：CSP 历年真题练习
+- `力扣算法题/`：LeetCode 题目练习
+- `洛谷算法题/`：洛谷题目练习
+
+## 说明
+
+本仓库主要用于记录个人算法学习过程，代码会随着学习进度持续整理和更新。
