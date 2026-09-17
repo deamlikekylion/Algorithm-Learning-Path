@@ -5,10 +5,10 @@ int main(){
     vector<int> nums;  int target;
     map<int,int> mp;  int i,j;  
     //此题不能用sort排序,因为题目要求的是原始下标,可以用哈希表遍历一次找是否有target-nums[i]
-    for(i=0;i<nums.size();i++){
+    for(i=0;i<nums.size();i++){  //vector长度用size而不是length(一般可以无脑用size)
         int x=target-nums[i];
         if(mp.count(x)){
-            j=mp[x];  break;  //找到后记得返回
+            j=mp[x];  break;     //找到后记得返回
         }
         mp[nums[i]]=i;
     }
